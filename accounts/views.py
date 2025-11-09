@@ -1,9 +1,10 @@
 from django.shortcuts import render
 from .serializers import MyTokenObtainPairSerializer, RegisterSerializer
+from .models import CustomUser
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 
 class MeView(APIView):
@@ -88,3 +89,26 @@ class AddStaffView(APIView):
                 }
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    GET /api/accounts/?type=staff
+    GET /api/accounts/?type=superuser
+    GET /api/accounts/?type=client
+    """
+    queryset = CustomUser.objects.all()
+    serializer_class = RegisterSerializer
+    permission_classes = [IsAdminUser]  # ให้เฉพาะ admin/staff เข้าดูได้
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user_type = self.request.query_params.get("type")
+
+        if user_type == "staff":
+            queryset = queryset.filter(is_staff=True, is_superuser=False)
+        elif user_type == "superuser":
+            queryset = queryset.filter(is_superuser=True)
+        elif user_type == "client":
+            queryset = queryset.filter(is_staff=False, is_superuser=False)
+
+        return queryset.order_by("id")

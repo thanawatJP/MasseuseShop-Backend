@@ -1,6 +1,10 @@
-from django.urls import path
-from .views import CookieTokenObtainPairView, LogoutView, MeView, RegisterView, AddStaffView
+from django.urls import path, include
+from .views import *
 from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'users', UserViewSet, basename='user')
 
 urlpatterns = [
     path("me/", MeView.as_view(), name="get_me"),
@@ -9,4 +13,5 @@ urlpatterns = [
     path("refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("register/", RegisterView.as_view(), name="register"),
     path("add-staff/", AddStaffView.as_view(), name="add-staff"),
+    path("", include(router.urls)),
 ]
