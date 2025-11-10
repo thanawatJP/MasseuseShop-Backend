@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "services",
     "bookings",
     "accounts",
+    "dashboard",
 ]
 
 MIDDLEWARE = [
@@ -75,7 +76,11 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
-CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ORIGIN_ALLOW_ALL = False
 
 ROOT_URLCONF = 'masseuseshop.urls'
 

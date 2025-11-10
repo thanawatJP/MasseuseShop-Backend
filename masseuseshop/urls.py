@@ -39,6 +39,7 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path("api/services/", include("services.urls")),
     path("api/appointments/", include("bookings.urls")),
+    path('api/dashboard/', include('dashboard.urls')),
     
     # Swagger + ReDoc
     path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
