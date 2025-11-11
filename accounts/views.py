@@ -1,10 +1,11 @@
 from django.shortcuts import render
-from .serializers import MyTokenObtainPairSerializer, RegisterSerializer
+from .serializers import MyTokenObtainPairSerializer, RegisterSerializer, ProfileSerializer
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from .models import CustomUser
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
@@ -46,7 +47,29 @@ class CookieTokenObtainPairView(TokenObtainPairView):
             )
 
         return response
-    
+
+class CookieTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get("refresh_token")
+
+        if not refresh_token:
+            return Response({"detail": "No refresh token in cookie"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # inject token เข้าไปใน request.data ให้ SimpleJWT ใช้ได้
+        request.data["refresh"] = refresh_token
+        response = super().post(request, *args, **kwargs)
+
+        if response.status_code == 200:
+            new_access = response.data.get("access")
+            response.set_cookie(
+                key="access_token",
+                value=new_access,
+                httponly=True,
+                secure=False,
+                samesite="Lax"
+            )
+        return response
+
 class LogoutView(APIView):
     def post(self, request):
         response = Response({"message": "Logged out"}, status=200)
@@ -69,20 +92,53 @@ class ProfileView(APIView):
             }
             return Response({
                 "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
                 "username": user.username,
                 "email": user.email,
                 "phone_number": user.phone_number,
+                "image_url": user.image_url,
                 "is_staff": user.is_staff,
                 **staff_info
-            })
+            }, status=status.HTTP_200_OK)
         else:
             return Response({
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
                 "phone_number": user.phone_number,
-                "is_staff": user.is_staff,
-            })
+                "image_url": user.image_url,
+            }, status=status.HTTP_200_OK)
+        
+    def put(self, request):
+        user = request.user
+        data = request.data
+
+        serializer = ProfileSerializer(instance=user, data=request.data, partial=True)
+        if serializer.is_valid():
+            updated_user = serializer.update(user, serializer.validated_data)
+
+            # Update Staff_Data if exists
+            if hasattr(user, "staff_data"):
+                staff_data = user.staff_data
+                staff_data.expertise = data.get("expertise", staff_data.expertise)
+                # ถ้าอยากให้ update hire_date หรือ salary ก็ทำตรงนี้ได้
+                staff_data.save()
+
+            return Response({
+                "message": "Profile updated successfully",
+                "user": {
+                    "id": updated_user.id,
+                    "first_name": updated_user.first_name,
+                    "last_name": updated_user.last_name,
+                    "username": updated_user.username,
+                    "email": updated_user.email,
+                    "phone_number": updated_user.phone_number,
+                    "expertise": getattr(updated_user.staff_data, "expertise", None) if hasattr(user, "staff_data") else None,
+                }
+            }, status=status.HTTP_200_OK)
+        print(serializer.errors)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -103,6 +159,12 @@ class RegisterView(APIView):
     
 class AddStaffView(APIView):
     permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        staff_users = CustomUser.objects.filter(is_staff=True)
+        serializer = RegisterSerializer(staff_users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
