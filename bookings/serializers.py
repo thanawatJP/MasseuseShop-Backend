@@ -16,6 +16,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "customer", "customer_name",
             "masseuse", "masseuse_name",
             "time_start", "time_end",
-            "status"
+            "status", "payment_method",
         ]
-        read_only_fields = ["customer", "status"]
+        read_only_fields = ["customer"]
