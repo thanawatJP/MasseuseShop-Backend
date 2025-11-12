@@ -105,6 +105,8 @@ class ProfileView(APIView):
             return Response({
                 "id": user.id,
                 "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
                 "email": user.email,
                 "phone_number": user.phone_number,
                 "image_url": user.image_url,
