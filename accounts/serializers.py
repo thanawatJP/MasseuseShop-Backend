@@ -48,8 +48,41 @@ class StaffSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "is_staff", "phone_number", "staff_data"]
+        fields = ["id", "username", "email", "first_name", "last_name", "is_staff", "phone_number", "staff_data", "password"]
 
+    def create(self, validated_data):
+        staff_data_data = validated_data.pop('staff_data')
+        user = User(
+            username=validated_data["username"],
+            email=validated_data.get("email", ""),
+            phone_number=validated_data.get("phone_number", ""),
+            first_name=validated_data.get("first_name", ""),
+            last_name=validated_data.get("last_name", ""),
+            is_staff=True,
+        )
+        user.set_password(validated_data["password"])
+        user.save()
+        Staff_Data.objects.create(user=user, **staff_data_data)
+        return user
+
+    def update(self, instance, validated_data):
+        staff_data_data = validated_data.pop('staff_data', None)
+
+        instance.first_name = validated_data.get("first_name", instance.first_name)
+        instance.last_name = validated_data.get("last_name", instance.last_name)
+        instance.email = validated_data.get("email", instance.email)
+        instance.phone_number = validated_data.get("phone_number", instance.phone_number)
+        instance.username = validated_data.get("username", instance.username)
+        instance.save()
+
+        if staff_data_data:
+            staff_data = instance.staff_data
+            staff_data.expertise = staff_data_data.get('expertise', staff_data.expertise)
+            staff_data.hire_date = staff_data_data.get('hire_date', staff_data.hire_date)
+            staff_data.salary = staff_data_data.get('salary', staff_data.salary)
+            staff_data.save()
+
+        return instance
 
 
 class ProfileSerializer(serializers.ModelSerializer):
