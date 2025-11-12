@@ -88,7 +88,7 @@ class StaffSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "username", "email", "phone_number"]
+        fields = ["first_name", "last_name", "username", "email", "phone_number", "image_url"]
 
     def update(self, instance, validated_data):
         instance.first_name = validated_data.get("first_name", instance.first_name)
